@@ -3,63 +3,258 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Painel Push (Render)</title>
+  <title>Notificação — Cartomantes Online</title>
+
   <style>
-    body{font-family:system-ui,Arial;margin:0;background:#0b0b0b;color:#fff;padding:22px}
-    .card{max-width:860px;margin:0 auto;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px}
-    input,textarea{width:100%;padding:12px;border-radius:10px;border:0;margin:8px 0 12px}
-    button{padding:12px 14px;border:0;border-radius:10px;font-weight:900;cursor:pointer}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    .muted{opacity:.85;font-size:13px;line-height:1.4}
-    code{background:rgba(0,0,0,.35);padding:2px 6px;border-radius:8px}
+    :root{
+      --bg:#000;
+      --card: rgba(255,255,255,.06);
+      --line: rgba(255,215,0,.35);
+      --gold:#FFD700;
+      --gold2:#C7A008;
+      --text:#fff;
+      --muted: rgba(255,255,255,.78);
+
+      --inputBg:#fff;
+      --inputText:#111;
+
+      --radius: 18px;
+      --shadow: 0 18px 44px rgba(0,0,0,0.60);
+      --btnShadow: 0 14px 30px rgba(0,0,0,.55);
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(900px 420px at 15% 10%, rgba(199,160,8,0.20), rgba(0,0,0,0) 60%),
+        radial-gradient(900px 420px at 85% 20%, rgba(199,160,8,0.16), rgba(0,0,0,0) 60%),
+        radial-gradient(1200px 520px at 50% 120%, rgba(199,160,8,0.10), rgba(0,0,0,0) 65%),
+        var(--bg);
+      color:var(--text);
+      padding:18px 14px 26px;
+    }
+
+    .wrap{ max-width:920px; margin:0 auto; }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      padding:16px;
+      box-shadow: var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(520px 220px at 50% 0%, rgba(246,226,122,0.14), rgba(0,0,0,0) 60%),
+        radial-gradient(180px 120px at 18% 18%, rgba(255,240,166,0.08), rgba(0,0,0,0) 70%),
+        radial-gradient(180px 120px at 82% 28%, rgba(255,240,166,0.06), rgba(0,0,0,0) 70%);
+      pointer-events:none;
+      opacity:.95;
+    }
+
+    .header{
+      position:relative;
+      display:flex;
+      gap:12px;
+      align-items:center;
+      padding-bottom:10px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      margin-bottom:12px;
+    }
+
+    .badgeIcon{
+      width:44px;height:44px;
+      border-radius:14px;
+      display:flex;align-items:center;justify-content:center;
+      background:linear-gradient(180deg, rgba(246,226,122,.20), rgba(199,160,8,.10));
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow: 0 12px 26px rgba(0,0,0,.45);
+      flex:0 0 auto;
+    }
+    .badgeIcon svg{ width:22px;height:22px; opacity:.95; }
+
+    h1{
+      margin:0;
+      font-size:18px;
+      line-height:1.2;
+      font-weight:900;
+      letter-spacing:.2px;
+      color:transparent;
+      background-image:linear-gradient(180deg, #fff0a6 0%, var(--gold) 45%, var(--gold2) 100%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      text-shadow:0 0 22px rgba(199,160,8,0.15);
+    }
+
+    .sub{
+      margin:4px 0 0;
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+
+    .topRow{
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin:12px 0 8px;
+      flex-wrap:wrap;
+    }
+
+    .pill{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(0,0,0,.35);
+      font-size:13px;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .pill b{ color:var(--gold); font-weight:900; }
+
+    label{
+      display:block;
+      font-size:12px;
+      color:rgba(255,255,255,.80);
+      margin:10px 0 6px;
+      position:relative;
+    }
+
+    input, textarea{
+      width:100%;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid rgba(0,0,0,.12);
+      background:var(--inputBg);
+      color:var(--inputText);
+      outline:none;
+      font-family:inherit;
+      box-shadow: 0 8px 18px rgba(0,0,0,.20);
+    }
+    input::placeholder, textarea::placeholder{ color:rgba(0,0,0,.55); }
+    textarea{ min-height:130px; resize:vertical; }
+
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    button{
+      height:52px;
+      padding:0 14px;
+      border:0;
+      border-radius:14px;
+      font-weight:900;
+      cursor:pointer;
+      letter-spacing:.4px;
+      transition: filter .18s ease, transform .12s ease;
+      width:100%;
+    }
+    button:active{ transform: translateY(1px); }
+
+    .btnSend{
+      color:#111;
+      background:linear-gradient(180deg, #fff0a6 0%, var(--gold) 55%, var(--gold2) 100%);
+      box-shadow: var(--btnShadow);
+    }
+    .btnSend:hover{ filter:brightness(1.05); }
+
+    .btnRefresh{
+      color:#fff;
+      background:rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow:none;
+    }
+    .btnRefresh:hover{ filter:brightness(1.06); }
+
+    @media (min-width:720px){
+      button{ width:auto; }
+      .actions{ justify-content:flex-start; }
+    }
+
+    .status{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.35);
+      color:rgba(255,255,255,.86);
+      font-size:13px;
+      line-height:1.35;
+      position:relative;
+      word-break:break-word;
+    }
   </style>
 </head>
+
 <body>
-  <div class="card">
-    <h2 style="margin:0 0 6px;">Painel de Notificações ✅</h2>
-    <div class="muted">Este painel envia Push para os PWAs registrados.</div>
+  <div class="wrap">
+    <div class="card">
+      <div class="header">
+        <div class="badgeIcon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 22a2.2 2.2 0 0 0 2.2-2.2h-4.4A2.2 2.2 0 0 0 12 22Z" fill="white" opacity=".92"/>
+            <path d="M18 10.5c0-3.2-2-5.6-5-6.2V3a1 1 0 1 0-2 0v1.3c-3 .6-5 3-5 6.2V16l-1.4 1.4A1 1 0 0 0 5.3 19h13.4a1 1 0 0 0 .7-1.7L18 16v-5.5Z" fill="white" opacity=".92"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Notificação — Cartomantes Online</h1>
+          <p class="sub">Envie Push para os PWAs registrados (inclusive com o app fechado).</p>
+        </div>
+      </div>
 
-    <p class="muted">Inscritos: <b id="subs">0</b></p>
+      <div class="topRow">
+        <div class="pill">Inscritos: <b id="subs">0</b></div>
+      </div>
 
-    <label>Título</label>
-    <input id="title" placeholder="Cartomantes Online" value="Cartomantes Online" />
+      <label for="title">Título</label>
+      <input id="title" placeholder="Cartomantes Online" value="Cartomantes Online" />
 
-    <label>Mensagem</label>
-    <textarea id="body" rows="3" placeholder="Escreva a mensagem..."></textarea>
+      <label for="body">Mensagem</label>
+      <textarea id="body" rows="4" placeholder="Escreva a mensagem..."></textarea>
 
-    <label>URL ao clicar (recomendado)</label>
-    <input id="url" value="https://marcio2307.github.io/cartomantesonline.site/leituras.html?pwa=true" />
+      <div class="actions">
+        <button class="btnSend" id="send">ENVIAR PARA TODOS</button>
+        <button class="btnRefresh" id="refresh">ATUALIZAR</button>
+      </div>
 
-    <label>Ícone (opcional)</label>
-    <input id="icon" value="https://marcio2307.github.io/cartomantesonline.site/logo.png" />
-
-    <div class="row">
-      <button id="send">Enviar para todos</button>
-      <button id="refresh">Atualizar inscritos</button>
-    </div>
-
-    <p id="status" class="muted" style="margin-top:12px;"></p>
-
-    <hr style="border:0;border-top:1px solid rgba(255,255,255,.12);margin:14px 0">
-
-    <div class="muted">
-      Testes:
-      <div>• <code>/health</code></div>
-      <div>• <code>/api/subscribers</code></div>
+      <div id="status" class="status">—</div>
     </div>
   </div>
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const setStatus = (m) => $("status").textContent = m;
+    const setStatus = (m) => ($("status").textContent = m);
 
-    async function refreshSubs(){
+    // ✅ URL fixa (não aparece no painel)
+    const FIXED_CLICK_URL = "https://marcio2307.github.io/cartomantesonline.site/leituras.html?pwa=true";
+
+    async function refreshCounts(){
       const r = await fetch("/api/subscribers");
       const j = await r.json();
       $("subs").textContent = j.total ?? 0;
+      setStatus("✅ Atualizado.");
     }
 
-    $("refresh").onclick = () => refreshSubs().catch(e => setStatus("Erro: " + (e?.message || e)));
+    $("refresh").onclick = () =>
+      refreshCounts().catch(e => setStatus("❌ Erro: " + (e?.message || e)));
 
     $("send").onclick = async () => {
       try{
@@ -77,8 +272,8 @@
           body: JSON.stringify({
             title: $("title").value,
             body: msg,
-            url: $("url").value,
-            icon: $("icon").value
+            url: FIXED_CLICK_URL
+            // icon fica no default do server.js (logo.png)
           })
         });
 
@@ -90,13 +285,13 @@
         }
 
         setStatus("✅ Enviado. success=" + j.success + " failed=" + j.failed + " total=" + j.total);
-        await refreshSubs();
+        await refreshCounts();
       }catch(e){
         setStatus("❌ " + (e?.message || e));
       }
     };
 
-    refreshSubs().catch(()=>{});
+    refreshCounts().catch(()=>{ setStatus("—"); });
   </script>
 </body>
 </html>
