@@ -230,6 +230,7 @@
       <label for="body">Mensagem</label>
       <textarea id="body" rows="4" placeholder="Escreva a mensagem..."></textarea>
 
+      <!-- ✅ continua funcionando igual ao painel simples: manda URL fixa + icon padrão do server -->
       <div class="actions">
         <button class="btnSend" id="send">ENVIAR PARA TODOS</button>
         <button class="btnRefresh" id="refresh">ATUALIZAR</button>
@@ -247,7 +248,7 @@
     const FIXED_CLICK_URL = "https://marcio2307.github.io/cartomantesonline.site/leituras.html?pwa=true";
 
     async function refreshCounts(){
-      const r = await fetch("/api/subscribers");
+      const r = await fetch("/api/subscribers", { cache: "no-store" });
       const j = await r.json();
       $("subs").textContent = j.total ?? 0;
       setStatus("✅ Atualizado.");
@@ -273,7 +274,7 @@
             title: $("title").value,
             body: msg,
             url: FIXED_CLICK_URL
-            // icon fica no default do server.js (logo.png)
+            // ✅ icon fica no default do server.js
           })
         });
 
