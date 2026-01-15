@@ -1,99 +1,118 @@
 import express from "express";
+import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import webpush from "web-push";
-import fs from "fs";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// ✅ CORS liberado (GitHub Pages consegue chamar o Render)
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type"]
+}));
+
 app.use(express.json({ limit: "1mb" }));
-app.use(express.static("public"));
 
-const PORT = process.env.PORT || 10000;
+// ✅ Servir o painel /admin.html
+app.use(express.static(path.join(__dirname, "public")));
 
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+// =====================
+// VAPID (SEUS DADOS)
+// =====================
+const VAPID_PUBLIC_KEY  = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:you@example.com";
+const VAPID_SUBJECT     = process.env.VAPID_SUBJECT || "mailto:marciodoxosseo@gmail.com";
 
 if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
-  console.error("FALTANDO ENV: VAPID_PUBLIC_KEY e/ou VAPID_PRIVATE_KEY");
+  console.warn("⚠️ VAPID keys ausentes no env. Configure no Render: VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY");
+} else {
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 }
 
-webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+// =====================
+// MEMÓRIA: inscritos
+// (teste simples)
+// =====================
+let subscribers = [];
 
-const DB_FILE = "./subscriptions.json";
-
-function loadSubs() {
-  try { return JSON.parse(fs.readFileSync(DB_FILE, "utf-8")); }
-  catch { return []; }
-}
-
-function saveSubs(subs) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(subs, null, 2));
-}
-
-function sameEndpoint(a, b) {
-  return a?.endpoint && b?.endpoint && a.endpoint === b.endpoint;
-}
-
-app.get("/health", (_, res) => res.json({ ok: true }));
-
-// recebe inscrições do app
-app.post("/api/subscribe", (req, res) => {
-  const sub = req.body?.subscription;
-  if (!sub?.endpoint) return res.status(400).send("subscription inválida");
-
-  const subs = loadSubs();
-  const exists = subs.some(s => sameEndpoint(s.subscription, sub));
-
-  if (!exists) {
-    subs.push({
-      subscription: sub,
-      page: req.body?.page || "",
-      ua: req.body?.ua || "",
-      createdAt: req.body?.createdAt || new Date().toISOString()
-    });
-    saveSubs(subs);
-  }
-
-  res.json({ ok: true, total: subs.length });
+// ✅ Health check
+app.get("/health", (req, res) => {
+  res.json({ ok: true });
 });
 
-// mostra quantos inscritos existem (pro painel)
+// ✅ Ver quantos inscritos
 app.get("/api/subscribers", (req, res) => {
-  const subs = loadSubs();
-  res.json({ total: subs.length });
+  res.json({ total: subscribers.length });
 });
 
-// envia push para todos os inscritos
+// ✅ Registrar inscrição (PWA chama via POST)
+app.post("/api/subscribe", (req, res) => {
+  try {
+    const { subscription } = req.body || {};
+    if (!subscription || !subscription.endpoint) {
+      return res.status(400).json({ ok: false, error: "subscription inválida" });
+    }
+
+    // evita duplicar pelo endpoint
+    const exists = subscribers.some(s => s.endpoint === subscription.endpoint);
+    if (!exists) subscribers.push(subscription);
+
+    console.log("✅ Novo inscrito:", subscription.endpoint);
+    res.json({ ok: true, total: subscribers.length });
+  } catch (e) {
+    console.error("❌ subscribe error:", e);
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
+// ✅ Enviar push para todos (painel chama)
 app.post("/api/send", async (req, res) => {
-  const { title, body, url, icon } = req.body || {};
+  try {
+    const { title, body, url, icon } = req.body || {};
+    if (!subscribers.length) return res.json({ ok: true, success: 0, failed: 0, total: 0 });
 
-  const payload = JSON.stringify({
-    title: title || "Notificação",
-    body: body || "Mensagem do painel",
-    url: url || "https://marcio2307.github.io/teste/app.html",
-    icon: icon || "https://marcio2307.github.io/teste/logo.png"
-  });
+    let success = 0;
+    let failed = 0;
 
-  let subs = loadSubs();
-  let success = 0;
-  let failed = 0;
+    const payload = JSON.stringify({
+      title: title || "Notificação",
+      body: body || "Mensagem recebida.",
+      url: url || "https://marcio2307.github.io/teste/app.html",
+      icon: icon || "https://marcio2307.github.io/teste/logo.png"
+    });
 
-  for (const item of subs) {
-    try {
-      await webpush.sendNotification(item.subscription, payload);
-      success++;
-    } catch (err) {
-      failed++;
-      const code = err?.statusCode;
-
-      // remove inválidos automaticamente
-      if (code === 410 || code === 404) {
-        subs = subs.filter(s => !sameEndpoint(s.subscription, item.subscription));
+    // envia para todos
+    for (const sub of [...subscribers]) {
+      try {
+        await webpush.sendNotification(sub, payload);
+        success++;
+      } catch (err) {
+        failed++;
+        // remove inscrição inválida (410/404)
+        const status = err?.statusCode || err?.status;
+        if (status === 410 || status === 404) {
+          subscribers = subscribers.filter(s => s.endpoint !== sub.endpoint);
+        }
+        console.error("❌ push fail:", status, err?.message || err);
       }
     }
-  }
 
-  saveSubs(subs);
-  res.json({ ok: true, success, failed, totalNow: subs.length });
+    res.json({ ok: true, success, failed, total: subscribers.length });
+  } catch (e) {
+    console.error("❌ send error:", e);
+    res.status(500).json({ ok: false, error: String(e) });
+  }
 });
 
-app.listen(PORT, () => console.log("Servidor rodando na porta", PORT));
+// ✅ Página raiz
+app.get("/", (req, res) => {
+  res.send("Render API OK ✅");
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("✅ Render rodando na porta", PORT));
