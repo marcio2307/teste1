@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Painel Push (Render)</title>
+  <style>
+    body { font-family: system-ui, Arial; margin: 0; padding: 18px; background:#101014; color:#fff; }
+    .card { background: rgba(255,255,255,.07); padding: 16px; border-radius: 14px; max-width: 900px; }
+    input, textarea { width: 100%; border:0; border-radius: 10px; padding: 10px; margin-top: 6px; }
+    button { padding: 12px 14px; border: 0; border-radius: 10px; font-weight: 900; cursor: pointer; margin-top: 12px; }
+    .muted { opacity:.85; font-size: 14px; line-height: 1.35; }
+    code { background: rgba(0,0,0,.35); padding: 2px 6px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Painel de Notificações (Render)</h1>
+    <p class="muted">
+      Envia push para todos que ativaram no app (<code>Ativar Notificações</code>).
+      <br>Sem senha (como você pediu).
+    </p>
+
+    <p id="count" class="muted">Carregando inscritos...</p>
+
+    <label>Título</label>
+    <input id="title" value="Mensagem do Painel" />
+
+    <label>Mensagem</label>
+    <textarea id="body" rows="4">Olá! Isso é um push enviado do Render (chega com o app fechado).</textarea>
+
+    <label>URL ao clicar (opcional)</label>
+    <input id="url" value="https://marcio2307.github.io/teste/app.html" />
+
+    <label>Ícone (opcional)</label>
+    <input id="icon" value="https://marcio2307.github.io/teste/logo.png" />
+
+    <button id="send">Enviar para todos</button>
+
+    <p id="status" class="muted" style="margin-top:12px;"></p>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    async function refreshCount() {
+      const res = await fetch("/api/subscribers");
+      const data = await res.json();
+      $("count").textContent = "Inscritos cadastrados: " + (data.total || 0);
+    }
+
+    $("send").onclick = async () => {
+      $("status").textContent = "Enviando...";
+      const payload = {
+        title: $("title").value.trim(),
+        body: $("body").value.trim(),
+        url: $("url").value.trim(),
+        icon: $("icon").value.trim()
+      };
+
+      const res = await fetch("/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        $("status").textContent = "❌ Erro ao enviar.";
+      } else {
+        $("status").textContent =
+          `✅ Enviado! success=${data.success} failed=${data.failed} totalAgora=${data.totalNow}`;
+        refreshCount();
+      }
+    };
+
+    refreshCount();
+    setInterval(refreshCount, 5000);
+  </script>
+</body>
+</html>
