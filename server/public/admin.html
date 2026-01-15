@@ -4,48 +4,247 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Painel Push (Render)</title>
+
   <style>
-    body{font-family:system-ui,Arial;margin:0;background:#0b0b0b;color:#fff;padding:22px}
-    .card{max-width:860px;margin:0 auto;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px}
-    input,textarea{width:100%;padding:12px;border-radius:10px;border:0;margin:8px 0 12px}
-    button{padding:12px 14px;border:0;border-radius:10px;font-weight:900;cursor:pointer}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    .muted{opacity:.85;font-size:13px;line-height:1.4}
-    code{background:rgba(0,0,0,.35);padding:2px 6px;border-radius:8px}
+    :root{
+      --bg:#0b0b0b;
+      --card: rgba(255,255,255,.06);
+      --line: rgba(255,255,255,.12);
+      --muted: rgba(255,255,255,.80);
+      --text:#fff;
+      --shadow: 0 18px 44px rgba(0,0,0,0.60);
+      --radius: 18px;
+      --btnShadow: 0 14px 30px rgba(0,0,0,.55);
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(900px 420px at 15% 10%, rgba(255,255,255,0.07), rgba(0,0,0,0) 60%),
+        radial-gradient(900px 420px at 85% 20%, rgba(255,255,255,0.05), rgba(0,0,0,0) 60%),
+        radial-gradient(1200px 520px at 50% 120%, rgba(255,255,255,0.04), rgba(0,0,0,0) 65%),
+        var(--bg);
+      color:var(--text);
+      padding:16px 12px 24px;
+    }
+
+    .wrap{
+      max-width: 920px;
+      margin: 0 auto;
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      padding:14px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .header{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:6px 2px 12px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      margin-bottom:12px;
+    }
+
+    .appIcon{
+      width:44px;height:44px;
+      border-radius:14px;
+      display:flex;align-items:center;justify-content:center;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow: 0 12px 26px rgba(0,0,0,.45);
+      flex:0 0 auto;
+    }
+    .appIcon svg{ width:22px;height:22px; opacity:.95; }
+
+    h1{
+      margin:0;
+      font-size:16px;
+      font-weight:900;
+      letter-spacing:.2px;
+    }
+    .sub{
+      margin:4px 0 0;
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+
+    .topRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin:12px 0 10px;
+    }
+
+    .pill{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(0,0,0,.28);
+      font-size:13px;
+      color:rgba(255,255,255,.88);
+      white-space:nowrap;
+    }
+    .pill b{ font-weight:900; }
+
+    label{
+      display:block;
+      font-size:12px;
+      color:rgba(255,255,255,.82);
+      margin:10px 0 6px;
+    }
+
+    input,textarea{
+      width:100%;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.10);
+      color:#fff;
+      outline:none;
+      box-shadow: 0 8px 18px rgba(0,0,0,.20);
+      font-family:inherit;
+    }
+    input::placeholder, textarea::placeholder{ color:rgba(255,255,255,.55); }
+    textarea{ min-height:120px; resize:vertical; }
+
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+
+    button{
+      height:52px;
+      padding:0 14px;
+      border:0;
+      border-radius:14px;
+      font-weight:900;
+      cursor:pointer;
+      letter-spacing:.3px;
+      width:100%;
+      transition: transform .12s ease, filter .18s ease;
+    }
+    button:active{ transform: translateY(1px); }
+
+    #send{
+      background: linear-gradient(180deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.10) 100%);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.16);
+      box-shadow: var(--btnShadow);
+    }
+    #send:hover{ filter:brightness(1.06); }
+
+    #refresh{
+      background: rgba(255,255,255,.08);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow:none;
+    }
+    #refresh:hover{ filter:brightness(1.06); }
+
+    .status{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.28);
+      color:rgba(255,255,255,.90);
+      font-size:13px;
+      line-height:1.35;
+      word-break:break-word;
+    }
+
+    hr{
+      border:0;
+      border-top:1px solid rgba(255,255,255,.10);
+      margin:14px 0;
+    }
+
+    .tests{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.6;
+    }
+    code{
+      background:rgba(0,0,0,.35);
+      padding:2px 6px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.10);
+      color:#fff;
+    }
+
+    /* ✅ Desktop: botões lado a lado */
+    @media (min-width:720px){
+      button{ width:auto; }
+      #send{ min-width: 240px; }
+    }
   </style>
 </head>
+
 <body>
-  <div class="card">
-    <h2 style="margin:0 0 6px;">Painel de Notificações ✅</h2>
-    <div class="muted">Este painel envia Push para os PWAs registrados.</div>
+  <div class="wrap">
+    <div class="card">
+      <div class="header">
+        <div class="appIcon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 22a2.2 2.2 0 0 0 2.2-2.2h-4.4A2.2 2.2 0 0 0 12 22Z" fill="white" opacity=".92"/>
+            <path d="M18 10.5c0-3.2-2-5.6-5-6.2V3a1 1 0 1 0-2 0v1.3c-3 .6-5 3-5 6.2V16l-1.4 1.4A1 1 0 0 0 5.3 19h13.4a1 1 0 0 0 .7-1.7L18 16v-5.5Z" fill="white" opacity=".92"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Painel de Notificações ✅</h1>
+          <div class="sub">Envie Push para os PWAs registrados.</div>
+        </div>
+      </div>
 
-    <p class="muted">Inscritos: <b id="subs">0</b></p>
+      <div class="topRow">
+        <div class="pill">Inscritos: <b id="subs">0</b></div>
+      </div>
 
-    <label>Título</label>
-    <input id="title" placeholder="Cartomantes Online" value="Cartomantes Online" />
+      <label for="title">Título</label>
+      <input id="title" placeholder="Cartomantes Online" value="Cartomantes Online" />
 
-    <label>Mensagem</label>
-    <textarea id="body" rows="3" placeholder="Escreva a mensagem..."></textarea>
+      <label for="body">Mensagem</label>
+      <textarea id="body" rows="3" placeholder="Escreva a mensagem..."></textarea>
 
-    <label>URL ao clicar (recomendado)</label>
-    <input id="url" value="https://marcio2307.github.io/cartomantesonline.site/leituras.html?pwa=true" />
+      <label for="url">URL ao clicar (recomendado)</label>
+      <input id="url" value="https://marcio2307.github.io/cartomantesonline.site/leituras.html?pwa=true" />
 
-    <label>Ícone (opcional)</label>
-    <input id="icon" value="https://marcio2307.github.io/cartomantesonline.site/logo.png" />
+      <label for="icon">Ícone (opcional)</label>
+      <input id="icon" value="https://marcio2307.github.io/cartomantesonline.site/logo.png" />
 
-    <div class="row">
-      <button id="send">Enviar para todos</button>
-      <button id="refresh">Atualizar inscritos</button>
-    </div>
+      <div class="row">
+        <button id="send">Enviar para todos</button>
+        <button id="refresh">Atualizar inscritos</button>
+      </div>
 
-    <p id="status" class="muted" style="margin-top:12px;"></p>
+      <div id="status" class="status">—</div>
 
-    <hr style="border:0;border-top:1px solid rgba(255,255,255,.12);margin:14px 0">
+      <hr>
 
-    <div class="muted">
-      Testes:
-      <div>• <code>/health</code></div>
-      <div>• <code>/api/subscribers</code></div>
+      <div class="tests">
+        Testes:
+        <div>• <code>/health</code></div>
+        <div>• <code>/api/subscribers</code></div>
+      </div>
     </div>
   </div>
 
@@ -57,9 +256,10 @@
       const r = await fetch("/api/subscribers");
       const j = await r.json();
       $("subs").textContent = j.total ?? 0;
+      setStatus("✅ Inscritos atualizados.");
     }
 
-    $("refresh").onclick = () => refreshSubs().catch(e => setStatus("Erro: " + (e?.message || e)));
+    $("refresh").onclick = () => refreshSubs().catch(e => setStatus("❌ Erro: " + (e?.message || e)));
 
     $("send").onclick = async () => {
       try{
@@ -100,4 +300,3 @@
   </script>
 </body>
 </html>
-
