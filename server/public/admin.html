@@ -32,7 +32,10 @@
       padding:16px 12px 24px;
     }
 
-    .wrap{ max-width: 920px; margin: 0 auto; }
+    .wrap{
+      max-width: 920px;
+      margin: 0 auto;
+    }
 
     .card{
       background:var(--card);
@@ -64,8 +67,18 @@
     }
     .appIcon svg{ width:22px;height:22px; opacity:.95; }
 
-    h1{ margin:0; font-size:16px; font-weight:900; letter-spacing:.2px; }
-    .sub{ margin:4px 0 0; font-size:13px; color:var(--muted); line-height:1.35; }
+    h1{
+      margin:0;
+      font-size:16px;
+      font-weight:900;
+      letter-spacing:.2px;
+    }
+    .sub{
+      margin:4px 0 0;
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.35;
+    }
 
     .topRow{
       display:flex;
@@ -139,13 +152,13 @@
     }
     #send:hover{ filter:brightness(1.06); }
 
-    #refresh, #openHealth, #openSubs{
+    #refresh{
       background: rgba(255,255,255,.08);
       color:#fff;
       border:1px solid rgba(255,255,255,.14);
       box-shadow:none;
     }
-    #refresh:hover, #openHealth:hover, #openSubs:hover{ filter:brightness(1.06); }
+    #refresh:hover{ filter:brightness(1.06); }
 
     .status{
       margin-top:12px;
@@ -178,13 +191,7 @@
       color:#fff;
     }
 
-    .smallRow{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-top:10px;
-    }
-
+    /* ✅ Desktop: botões lado a lado */
     @media (min-width:720px){
       button{ width:auto; }
       #send{ min-width: 240px; }
@@ -204,12 +211,11 @@
         </div>
         <div>
           <h1>Painel de Notificações ✅</h1>
-          <div class="sub">Envie Push para os PWAs registrados (Render → Web Push).</div>
+          <div class="sub">Envie Push para os PWAs registrados.</div>
         </div>
       </div>
 
       <div class="topRow">
-        <div class="pill">API: <b id="apiHost">—</b></div>
         <div class="pill">Inscritos: <b id="subs">0</b></div>
       </div>
 
@@ -219,20 +225,15 @@
       <label for="body">Mensagem</label>
       <textarea id="body" rows="3" placeholder="Escreva a mensagem..."></textarea>
 
-      <label for="url">URL ao clicar</label>
-      <input id="url" value="https://marcio2307.github.io/cartomantesonline/inicio.html" />
+      <label for="url">URL ao clicar (recomendado)</label>
+      <input id="url" value="https://marcio2307.github.io/cartomantesonline.site/leituras.html?pwa=true" />
 
       <label for="icon">Ícone (opcional)</label>
-      <input id="icon" value="https://marcio2307.github.io/cartomantesonline/logo.png" />
+      <input id="icon" value="https://marcio2307.github.io/cartomantesonline.site/logo.png" />
 
       <div class="row">
         <button id="send">Enviar para todos</button>
         <button id="refresh">Atualizar inscritos</button>
-      </div>
-
-      <div class="smallRow">
-        <button id="openHealth">Abrir /health</button>
-        <button id="openSubs">Abrir /api/subscribers</button>
       </div>
 
       <div id="status" class="status">—</div>
@@ -243,9 +244,6 @@
         Testes:
         <div>• <code>/health</code></div>
         <div>• <code>/api/subscribers</code></div>
-        <div style="margin-top:6px; opacity:.9;">
-          Dica: se <code>Inscritos</code> ficar 0, o PWA ainda não chamou <code>/api/subscribe</code>.
-        </div>
       </div>
     </div>
   </div>
@@ -254,30 +252,14 @@
     const $ = (id) => document.getElementById(id);
     const setStatus = (m) => $("status").textContent = m;
 
-    const API_BASE = location.origin; // ex: https://marcio-1.onrender.com
-    $("apiHost").textContent = API_BASE.replace("https://","").replace("http://","");
-
-    async function safeJson(res){
-      const txt = await res.text().catch(()=> "");
-      try { return JSON.parse(txt); } catch { return { raw: txt }; }
-    }
-
     async function refreshSubs(){
-      const r = await fetch(API_BASE + "/api/subscribers", { cache: "no-store" });
-      const j = await safeJson(r);
-
-      if(!r.ok){
-        throw new Error("Falha /api/subscribers: " + r.status + " " + (j.error || j.raw || ""));
-      }
-
+      const r = await fetch("/api/subscribers");
+      const j = await r.json();
       $("subs").textContent = j.total ?? 0;
       setStatus("✅ Inscritos atualizados.");
     }
 
-    $("refresh").onclick = () => refreshSubs().catch(e => setStatus("❌ " + (e?.message || e)));
-
-    $("openHealth").onclick = () => window.open(API_BASE + "/health", "_blank");
-    $("openSubs").onclick = () => window.open(API_BASE + "/api/subscribers", "_blank");
+    $("refresh").onclick = () => refreshSubs().catch(e => setStatus("❌ Erro: " + (e?.message || e)));
 
     $("send").onclick = async () => {
       try{
@@ -289,7 +271,7 @@
 
         setStatus("Enviando...");
 
-        const res = await fetch(API_BASE + "/api/send", {
+        const res = await fetch("/api/send", {
           method:"POST",
           headers:{"Content-Type":"application/json"},
           body: JSON.stringify({
@@ -300,21 +282,21 @@
           })
         });
 
-        const j = await safeJson(res);
+        const j = await res.json().catch(async () => ({ error: await res.text().catch(()=> "") }));
 
         if(!res.ok){
-          setStatus("❌ Erro no servidor: " + res.status + " " + (j.error || j.raw || ""));
+          setStatus("❌ Erro no servidor: " + res.status + " " + (j.error || ""));
           return;
         }
 
-        setStatus("✅ Enviado. success=" + (j.success ?? 0) + " failed=" + (j.failed ?? 0) + " total=" + (j.total ?? 0));
+        setStatus("✅ Enviado. success=" + j.success + " failed=" + j.failed + " total=" + j.total);
         await refreshSubs();
       }catch(e){
         setStatus("❌ " + (e?.message || e));
       }
     };
 
-    refreshSubs().catch((e)=> setStatus("⚠️ " + (e?.message || e)));
+    refreshSubs().catch(()=>{});
   </script>
 </body>
 </html>
