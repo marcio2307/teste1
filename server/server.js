@@ -16,6 +16,9 @@ app.use(cors({
   allowedHeaders: ["Content-Type"]
 }));
 
+// ✅ Preflight (alguns browsers exigem)
+app.options("*", cors());
+
 app.use(express.json({ limit: "1mb" }));
 
 // ✅ Servir o painel /admin.html (pasta public)
@@ -36,6 +39,7 @@ if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
 
 // =====================
 // MEMÓRIA: inscritos (teste simples)
+// ⚠️ zera quando Render reinicia
 // =====================
 let subscribers = [];
 
@@ -69,6 +73,8 @@ app.post("/api/subscribe", (req, res) => {
     if (!exists) subscribers.push(subscription);
 
     console.log("✅ Novo inscrito:", subscription.endpoint);
+    console.log("📌 Total inscritos:", subscribers.length);
+
     res.json({ ok: true, total: subscribers.length });
   } catch (e) {
     console.error("❌ subscribe error:", e);
@@ -79,6 +85,14 @@ app.post("/api/subscribe", (req, res) => {
 // ✅ Enviar push para todos (painel chama)
 app.post("/api/send", async (req, res) => {
   try {
+    // ✅ garante VAPID configurado antes de enviar
+    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+      return res.status(500).json({
+        ok: false,
+        error: "VAPID não configurado no Render (VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY)."
+      });
+    }
+
     const { title, body, url, icon } = req.body || {};
 
     if (!subscribers.length) {
@@ -88,7 +102,7 @@ app.post("/api/send", async (req, res) => {
     let success = 0;
     let failed = 0;
 
-    // ✅ Defaults AGORA para o Cartomantes (GH Pages subpasta)
+    // ✅ Defaults para o Cartomantes (GH Pages subpasta)
     const defaultUrl  = "https://marcio2307.github.io/cartomantesonline.site/leituras.html?pwa=true";
     const defaultIcon = "https://marcio2307.github.io/cartomantesonline.site/logo.png";
 
