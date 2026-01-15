@@ -22,7 +22,7 @@
     <p class="muted">Inscritos: <b id="subs">0</b></p>
 
     <label>Título</label>
-    <input id="title" placeholder="Cartomantes Online" />
+    <input id="title" placeholder="Cartomantes Online" value="Cartomantes Online" />
 
     <label>Mensagem</label>
     <textarea id="body" rows="3" placeholder="Escreva a mensagem..."></textarea>
@@ -59,22 +59,36 @@
       $("subs").textContent = j.total ?? 0;
     }
 
-    $("refresh").onclick = () => refreshSubs().catch(e => setStatus("Erro: " + e));
+    $("refresh").onclick = () => refreshSubs().catch(e => setStatus("Erro: " + (e?.message || e)));
 
     $("send").onclick = async () => {
       try{
+        const msg = $("body").value.trim();
+        if(!msg){
+          setStatus("❌ Digite uma mensagem antes de enviar.");
+          return;
+        }
+
         setStatus("Enviando...");
+
         const res = await fetch("/api/send", {
           method:"POST",
           headers:{"Content-Type":"application/json"},
           body: JSON.stringify({
             title: $("title").value,
-            body: $("body").value,
+            body: msg,
             url: $("url").value,
             icon: $("icon").value
           })
         });
-        const j = await res.json();
+
+        const j = await res.json().catch(async () => ({ error: await res.text().catch(()=> "") }));
+
+        if(!res.ok){
+          setStatus("❌ Erro no servidor: " + res.status + " " + (j.error || ""));
+          return;
+        }
+
         setStatus("✅ Enviado. success=" + j.success + " failed=" + j.failed + " total=" + j.total);
         await refreshSubs();
       }catch(e){
