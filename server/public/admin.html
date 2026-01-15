@@ -5,77 +5,84 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Painel Push (Render)</title>
   <style>
-    body { font-family: system-ui, Arial; margin: 0; padding: 18px; background:#101014; color:#fff; }
-    .card { background: rgba(255,255,255,.07); padding: 16px; border-radius: 14px; max-width: 900px; }
-    input, textarea { width: 100%; border:0; border-radius: 10px; padding: 10px; margin-top: 6px; }
-    button { padding: 12px 14px; border: 0; border-radius: 10px; font-weight: 900; cursor: pointer; margin-top: 12px; }
-    .muted { opacity:.85; font-size: 14px; line-height: 1.35; }
-    code { background: rgba(0,0,0,.35); padding: 2px 6px; border-radius: 8px; }
+    body{font-family:system-ui,Arial;margin:0;background:#0b0b0b;color:#fff;padding:22px}
+    .card{max-width:860px;margin:0 auto;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px}
+    input,textarea{width:100%;padding:12px;border-radius:10px;border:0;margin:8px 0 12px}
+    button{padding:12px 14px;border:0;border-radius:10px;font-weight:900;cursor:pointer}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .muted{opacity:.85;font-size:13px;line-height:1.4}
+    code{background:rgba(0,0,0,.35);padding:2px 6px;border-radius:8px}
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Painel de Notificações (Render)</h1>
-    <p class="muted">
-      Envia push para todos que ativaram no app (<code>Ativar Notificações</code>).
-      <br>Sem senha (como você pediu).
-    </p>
+    <h2 style="margin:0 0 6px;">Painel de Notificações ✅</h2>
+    <div class="muted">Este painel envia Push para os PWAs registrados.</div>
 
-    <p id="count" class="muted">Carregando inscritos...</p>
+    <p class="muted">Inscritos: <b id="subs">0</b></p>
 
     <label>Título</label>
-    <input id="title" value="Mensagem do Painel" />
+    <input id="title" placeholder="Cartomantes Online" />
 
     <label>Mensagem</label>
-    <textarea id="body" rows="4">Olá! Isso é um push enviado do Render (chega com o app fechado).</textarea>
+    <textarea id="body" rows="3" placeholder="Escreva a mensagem..."></textarea>
 
-    <label>URL ao clicar (opcional)</label>
-    <input id="url" value="https://marcio2307.github.io/teste/app.html" />
+    <label>URL ao clicar (recomendado)</label>
+    <input id="url" value="https://marcio2307.github.io/cartomantesonline.site/leituras.html?pwa=true" />
 
     <label>Ícone (opcional)</label>
-    <input id="icon" value="https://marcio2307.github.io/teste/logo.png" />
+    <input id="icon" value="https://marcio2307.github.io/cartomantesonline.site/logo.png" />
 
-    <button id="send">Enviar para todos</button>
+    <div class="row">
+      <button id="send">Enviar para todos</button>
+      <button id="refresh">Atualizar inscritos</button>
+    </div>
 
     <p id="status" class="muted" style="margin-top:12px;"></p>
+
+    <hr style="border:0;border-top:1px solid rgba(255,255,255,.12);margin:14px 0">
+
+    <div class="muted">
+      Testes:
+      <div>• <code>/health</code></div>
+      <div>• <code>/api/subscribers</code></div>
+    </div>
   </div>
 
   <script>
     const $ = (id) => document.getElementById(id);
+    const setStatus = (m) => $("status").textContent = m;
 
-    async function refreshCount() {
-      const res = await fetch("/api/subscribers");
-      const data = await res.json();
-      $("count").textContent = "Inscritos cadastrados: " + (data.total || 0);
+    async function refreshSubs(){
+      const r = await fetch("/api/subscribers");
+      const j = await r.json();
+      $("subs").textContent = j.total ?? 0;
     }
 
+    $("refresh").onclick = () => refreshSubs().catch(e => setStatus("Erro: " + e));
+
     $("send").onclick = async () => {
-      $("status").textContent = "Enviando...";
-      const payload = {
-        title: $("title").value.trim(),
-        body: $("body").value.trim(),
-        url: $("url").value.trim(),
-        icon: $("icon").value.trim()
-      };
-
-      const res = await fetch("/api/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        $("status").textContent = "❌ Erro ao enviar.";
-      } else {
-        $("status").textContent =
-          `✅ Enviado! success=${data.success} failed=${data.failed} totalAgora=${data.totalNow}`;
-        refreshCount();
+      try{
+        setStatus("Enviando...");
+        const res = await fetch("/api/send", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({
+            title: $("title").value,
+            body: $("body").value,
+            url: $("url").value,
+            icon: $("icon").value
+          })
+        });
+        const j = await res.json();
+        setStatus("✅ Enviado. success=" + j.success + " failed=" + j.failed + " total=" + j.total);
+        await refreshSubs();
+      }catch(e){
+        setStatus("❌ " + (e?.message || e));
       }
     };
 
-    refreshCount();
-    setInterval(refreshCount, 5000);
+    refreshSubs().catch(()=>{});
   </script>
 </body>
 </html>
