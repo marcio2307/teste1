@@ -1,6 +1,7 @@
 {
-  "name": "pwa-push-render",
+  "name": "cartomantes-push-render",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
   "main": "server.js",
   "scripts": {
